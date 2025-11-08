@@ -5,6 +5,7 @@
 ../Core/Src/main.c:301:13:MX_TIM3_Init	4
 ../Core/Src/main.c:350:13:MX_USART1_UART_Init	2
 ../Core/Src/main.c:383:13:MX_GPIO_Init	1
-../Core/Src/main.c:422:6:HAL_TIM_PWM_PulseFinishedCallback	4
-../Core/Src/main.c:451:6:HAL_ADC_ConvCpltCallback	3
-../Core/Src/main.c:496:6:Error_Handler	1
+../Core/Src/main.c:422:6:HAL_TIM_PeriodElapsedCallback	5
+../Core/Src/main.c:459:6:adc	1
+../Core/Src/main.c:462:6:HAL_ADC_ConvCpltCallback	5
+../Core/Src/main.c:521:6:Error_Handler	1

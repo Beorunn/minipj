@@ -113,8 +113,8 @@ int main(void)
   MX_TIM2_Init();
   MX_TIM3_Init();
   /* USER CODE BEGIN 2 */
-  HAL_TIM_Base_Start(&htim2);
-  HAL_TIM_PWM_Start_IT(&htim3, TIM_CHANNEL_1);
+
+
   HAL_ADC_Start(&hadc1);
   if (HAL_ADC_PollForConversion(&hadc1, 100) == HAL_OK) {
       last_adc = HAL_ADC_GetValue(&hadc1);
@@ -269,9 +269,9 @@ static void MX_TIM2_Init(void)
   htim2.Instance = TIM2;
   htim2.Init.Prescaler = 8-1;
   htim2.Init.CounterMode = TIM_COUNTERMODE_UP;
-  htim2.Init.Period = 65535-1;
+  htim2.Init.Period = 10000-1;
   htim2.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
-  htim2.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_ENABLE;
+  htim2.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_DISABLE;
   if (HAL_TIM_Base_Init(&htim2) != HAL_OK)
   {
     Error_Handler();
@@ -316,7 +316,7 @@ static void MX_TIM3_Init(void)
   htim3.Init.CounterMode = TIM_COUNTERMODE_UP;
   htim3.Init.Period = 10000-1;
   htim3.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
-  htim3.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_ENABLE;
+  htim3.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_DISABLE;
   if (HAL_TIM_PWM_Init(&htim3) != HAL_OK)
   {
     Error_Handler();
@@ -328,7 +328,7 @@ static void MX_TIM3_Init(void)
     Error_Handler();
   }
   sConfigOC.OCMode = TIM_OCMODE_PWM1;
-  sConfigOC.Pulse = 500;
+  sConfigOC.Pulse = 5000;
   sConfigOC.OCPolarity = TIM_OCPOLARITY_HIGH;
   sConfigOC.OCFastMode = TIM_OCFAST_DISABLE;
   if (HAL_TIM_PWM_ConfigChannel(&htim3, &sConfigOC, TIM_CHANNEL_1) != HAL_OK)
@@ -419,46 +419,71 @@ static void MX_GPIO_Init(void)
 //		delay_us(500);
 //}
 
-void HAL_TIM_PWM_PulseFinishedCallback(TIM_HandleTypeDef *htim)
+void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
 {
-    if(htim->Instance == TIM3)
+    if(htim->Instance == TIM2)
     {
     		  if(step_count != 0){
     			  if(step_count > 0){
-    				  HAL_GPIO_WritePin(GPIOA, GPIO_PIN_8, GPIO_PIN_SET);
-    				  HAL_GPIO_WritePin(GPIOA, GPIO_PIN_11, GPIO_PIN_RESET); //ena =1
+    				  //HAL_GPIO_WritePin(GPIOA, GPIO_PIN_8, GPIO_PIN_SET);
+    				  //HAL_GPIO_WritePin(GPIOA, GPIO_PIN_11, GPIO_PIN_RESET); //ena =1
+    				  //HAL_TIM_PWM_Start(&htim3, TIM_CHANNEL_1);
     				  step_count--;
-    				  HAL_ADC_Start_IT(&hadc1);
-    				  	     sprintf(adc_buffer, "ADC Value: %d | Steps to go: %ld\r\n", current_adc, step_count);
-    				  	     HAL_UART_Transmit(&huart1, (uint16_t*)adc_buffer, strlen(adc_buffer), 1000); // Dùng timeout ngắn
+
+
     			  }
     			  else{
-    				  HAL_GPIO_WritePin(GPIOA, GPIO_PIN_8, GPIO_PIN_RESET);
-    				  HAL_GPIO_WritePin(GPIOA, GPIO_PIN_11, GPIO_PIN_RESET); //ena =1
+    				  //HAL_GPIO_WritePin(GPIOA, GPIO_PIN_8, GPIO_PIN_RESET);
+    				  //HAL_GPIO_WritePin(GPIOA, GPIO_PIN_11, GPIO_PIN_RESET); //ena =1
+    				  //HAL_TIM_PWM_Start(&htim3, TIM_CHANNEL_1);
 
     				  step_count++;
-    				  HAL_ADC_Start_IT(&hadc1);
-    				  	     sprintf(adc_buffer, "ADC Value: %d | Steps to go: %ld\r\n", current_adc, step_count);
-    				  	     HAL_UART_Transmit(&huart1, (uint16_t*)adc_buffer, strlen(adc_buffer), 1000); // Dùng timeout ngắn
+
 
     			  }
 
-    		  }  HAL_GPIO_WritePin(GPIOA, GPIO_PIN_11, GPIO_PIN_SET); //ena=0
-    		  HAL_ADC_Start_IT(&hadc1);
+    		  }
+    		  else if(step_count == 0) {
+    			  HAL_TIM_PWM_Stop(&htim3, TIM_CHANNEL_1);
+
+    			  HAL_TIM_Base_Stop_IT(&htim2);
+
+    			  HAL_GPIO_WritePin(GPIOA, GPIO_PIN_11, GPIO_PIN_SET);
+
+    			  HAL_ADC_Start_IT(&hadc1);
+    		  }
+    		   //ena=0
+
     }
 }
+void adc(){
 
+}
 void HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef *hadc){
 	if(hadc -> Instance == ADC1){
 		current_adc = HAL_ADC_GetValue(&hadc1);
-
+		int8_t temp = current_adc % 41;
+		current_adc = current_adc - temp;
 		different_adc = current_adc - last_adc;
 
-		if(abs(different_adc) > 100){
+		if(abs(different_adc) > 41){
 
 			step_count += (int) (different_adc * 200/4095) ;
 			last_adc = current_adc;
 		}
+		 sprintf(adc_buffer, "ADC Value: %d | Steps to go: %ld\r\n", current_adc, step_count);
+		    				  	     HAL_UART_Transmit(&huart1, (uint16_t*)adc_buffer, strlen(adc_buffer), 1000);
+		if(step_count !=0){
+			if(step_count > 0)
+				HAL_GPIO_WritePin(GPIOA, GPIO_PIN_8, GPIO_PIN_SET);
+			else HAL_GPIO_WritePin(GPIOA, GPIO_PIN_8, GPIO_PIN_RESET);
+
+			HAL_GPIO_WritePin(GPIOA, GPIO_PIN_11, GPIO_PIN_RESET);
+			HAL_TIM_PWM_Start(&htim3, TIM_CHANNEL_1);
+			HAL_TIM_Base_Start_IT(&htim2);
+		}
+		else
+		 HAL_ADC_Start_IT(&hadc1);
 
 
 
